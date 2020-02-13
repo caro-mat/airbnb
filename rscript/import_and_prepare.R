@@ -8,12 +8,19 @@ AB_NYC <- read.csv("data/AB_NYC_2019.csv", header=TRUE)
 str(AB_NYC)
 summary(AB_NYC)
 
+#remove price 0
+
 AB_NYC <-AB_NYC[AB_NYC$price > 0,]
 
-#log 
+#log price
 
 AB_NYC <- cbind(AB_NYC,price_log = log(AB_NYC$price))
 head(AB_NYC)
+
+#remove inactive and make new dataset
+
+AB_NYC_available <- AB_NYC %>% 
+  filter(availability_365 > 0) 
 
 
 #add distance to time square to model
