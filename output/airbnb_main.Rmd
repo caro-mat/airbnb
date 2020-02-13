@@ -1,5 +1,5 @@
 ---
-title: "airbnb_doc"
+title: "airbnb in New York City"
 author: "Carole Mattmann und Jonas Zürcher"
 date: "13 Februar 2020"
 output: html_document
