@@ -12,9 +12,9 @@ output:
 
 ```
 
-Included packages:
+Included packages: 
 
-```{r packages, include=TRUE, echo=TRUE, eval = TRUE}
+```{r packages, include=TRUE, echo=TRUE, eval = TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyverse)
 library(geosphere)
@@ -24,7 +24,7 @@ library(ggplot2)
 ## Introduction
 We are exploring a dataset of airbnb listings in New York City in 2019.
 
-```{r import, include=TRUE, echo=TRUE, eval = TRUE}
+```{r import, eval=, echo=TRUE, include=TRUE}
 AB_NYC <- read.csv("../data/AB_NYC_2019.csv", header=TRUE)
 str(AB_NYC)
 ```
@@ -83,11 +83,10 @@ AB_NYC_sharedroom <-AB_NYC[AB_NYC$room_type == "Shared room",]
 
 ## Data visualisation
 
-```{r plots, include=TRUE, echo=TRUE, eval = TRUE}
+### Distribution of prices by room types and neighbourhood
 
+```{r plot1, include=TRUE, echo=TRUE, eval = TRUE}
 
-
-## boxplots per room type, grouped by neighbourhood
 ggplot(data = AB_NYC,
        mapping = aes(y = price_log,
                      x = "",
@@ -98,7 +97,11 @@ ggplot(data = AB_NYC,
   xlab("")+
   ylab("log (price in $ per night)")
 
-summary(AB_NYC$room_type)
+
+```
+
+### ?
+```{r plots, include=TRUE, echo=TRUE, eval = TRUE}
 
 ## price distribution
 ggplot(data = AB_NYC,
