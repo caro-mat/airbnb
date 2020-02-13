@@ -1,19 +1,5 @@
-#https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data
-
 
 library(ggplot2)
-
-## boxplots per room type, grouped by neighbourhood
-ggplot(data = AB_NYC,
-       mapping = aes(y = price,
-                     x = "",
-                     group = neighbourhood_group,
-                     colour = neighbourhood_group)) +
-  geom_boxplot() +
-  ylim(0,500)+
-  facet_wrap(. ~ room_type)+
-  xlab("")+
-  ylab("price in $ per night")
 
 ## boxplots by room type
 
@@ -23,7 +9,18 @@ ggplot(data = AB_NYC,
                      group = room_type,
                      colour = room_type)) +
   geom_boxplot() +
-  ylim(0,1000)
+  ylim(0,500)
+
+## boxplots per room type, grouped by neighbourhood
+ggplot(data = AB_NYC,
+       mapping = aes(y = price,
+                     x = "",
+                     group = neighbourhood_group,
+                     colour = neighbourhood_group)) +
+  geom_boxplot() +
+  facet_wrap(. ~ room_type)+
+  xlab("")+
+  ylab("price in $ per night")
 
 
 ##simple linear models
@@ -70,10 +67,7 @@ plot(lm.5)
 ###########################################
 ###########################################
 
-#remove all high prices 
 
-summary(AB_NYC)
-AB_NYC_lowprice <- AB_NYC[AB_NYC$price <= 500,]
 
 #full linear model for prices below 500
 

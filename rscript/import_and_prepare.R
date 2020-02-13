@@ -1,8 +1,20 @@
+#data source
+#https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data
+
+
 #import data
 
 AB_NYC <- read.csv("data/AB_NYC_2019.csv", header=TRUE)
 str(AB_NYC)
 summary(AB_NYC)
+
+AB_NYC <-AB_NYC[AB_NYC$price > 0,]
+
+#log 
+
+AB_NYC <- cbind(AB_NYC,price_log = log(AB_NYC$price))
+head(AB_NYC)
+
 
 #add distance to time square to model
 #Times Square, Manhattan, NY, USA, Latitude and longitude coordinates are: 40.758896, -73.985130.
@@ -20,6 +32,13 @@ AB_NYC <- cbind(AB_NYC,dist.timessquare)
 head(AB_NYC)
 str(AB_NYC)
 
-#remove all high prices 
+#create subsets
 
-AB_NYC_lowprice <- AB_NYC[AB_NYC$price <= 500,]
+AB_NYC_entirehome <-AB_NYC[AB_NYC$room_type == "Entire home/apt",]
+
+AB_NYC_privateroom <-AB_NYC[AB_NYC$room_type == "Private room",]
+
+AB_NYC_sharedroom <-AB_NYC[AB_NYC$room_type == "Shared room",]
+
+
+
