@@ -25,14 +25,18 @@ library(ggplot2)
 # Introduction
 We are exploring a dataset of airbnb listings in New York City in 2019.
 
+# Data import and cleaning
+
+## airbnb dataset
+
+The dataset was downloaded from: https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data
+
+### Import
 ```{r import, eval=TRUE, echo=TRUE, include=TRUE}
 AB_NYC <- read.csv("../01_data/AB_NYC_2019.csv", header=TRUE)
 str(AB_NYC)
-
 ```
 
-# Data cleaning
-## Data import and preparation of the Airbnb Dataset
 Following changes have been made to the dataset:
 
 ### remove price 0
@@ -72,71 +76,60 @@ dist.timessquare <- distGeo(p1=coord, p2=c(-73.985130, 40.758896))
 AB_NYC_available <- cbind(AB_NYC_available,dist.timessquare)
 ```
 
-### Create subsets for room type
-
-```{r room_subsets, include=TRUE, echo=TRUE, eval = TRUE}
-
-AB_NYC_entirehome <-AB_NYC_available[AB_NYC_available$room_type == "Entire home/apt",]
-
-AB_NYC_privateroom <-AB_NYC_available[AB_NYC_available$room_type == "Private room",]
-
-AB_NYC_sharedroom <-AB_NYC_available[AB_NYC_available$room_type == "Shared room",]
-```
-
 ### Prepare dataset for merging
 ```{r echo=TRUE}
-# Neighbourhood Group klein schreiben für Merging
+# write neighbourhood group entries in lower case
 AB_NYC_available$neighbourhood_group<-tolower(AB_NYC_available$neighbourhood_group)
 
-#Leerzeichen aus den Distrikten entfernen
+#remove spaces from neighbourhood groups
 AB_NYC_available$neighbourhood_group <-gsub(" ","", AB_NYC_available$neighbourhood_group)
 
-# Neighbourhood Group als Faktor
+# neighbourhood group as factor
 AB_NYC_available$neighbourhood_group<-factor(AB_NYC_available$neighbourhood_group)
 ```
 
-## Data import and preparation of the Airbnb Dataset
-Das Dataset wurde auf folgender URL heruntergeladen: https://data.cityofnewyork.us/City-Government/Agency-Performance-Mapping-Indicators-Annual/gsj6-6rwm 
+## incidents dataset
+The dataset was downloaded from: https://data.cityofnewyork.us/City-Government/Agency-Performance-Mapping-Indicators-Annual/gsj6-6rwm 
 
 ```{r}
 Ind_NYC<- read.csv("../01_data/Indicators_NYC.csv")
 head(Ind_NYC)
 
-#Nur noch Daten von 2019
+#Filter Data from 2019
 Ind_NYC_2019<-data.frame("neighbourhood_group2"= Ind_NYC$Geographic.Identifier, "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
 head(Ind_NYC_2019)
 Ind_NYC_2019_cleaned<-Ind_NYC_2019
 
 
-#Nummern aus den Distrikten entfernen
+#remove numbers
 Ind_NYC_2019_cleaned$neighbourhood_group <-gsub("[0-9]","", Ind_NYC_2019_cleaned$neighbourhood_group2 )
-#Leerzeichen aus den Distrikten entfernen
+#remove empty spaces
 Ind_NYC_2019_cleaned$neighbourhood_group <-gsub(" ","", Ind_NYC_2019_cleaned$neighbourhood_group )
-#Alle distrikte klein schreiben
+#lowercases
 Ind_NYC_2019_cleaned$neighbourhood_group<-tolower(Ind_NYC_2019_cleaned$neighbourhood_group)
-# Neighbourhood Group als Faktor
+#factor
 Ind_NYC_2019_cleaned$neighbourhood_group<-factor(Ind_NYC_2019_cleaned$neighbourhood_group)
 
-#Überblick
+#overview
 head(Ind_NYC_2019_cleaned$Incidents)  
 head(Ind_NYC_2019_cleaned$neighbourhood_group)
 summary(Ind_NYC_2019_cleaned)
 summary(Ind_NYC_2019_cleaned$Indicator)
 levels(Ind_NYC_2019_cleaned$neighbourhood_group)
 
-# Summe der Incidents pro Distrikt und Indikator
+# sum of incidents per neighbourhood group and indicator 
 Summary_Ind_NYC_2019<-Ind_NYC_2019_cleaned %>%
   group_by(neighbourhood_group=Ind_NYC_2019_cleaned$neighbourhood_group,Indicator) %>%
   summarise(Observations=sum(Incidents,na.rm = TRUE))
 summary(Summary_Ind_NYC_2019)
 
 
-# Angaben ohne Distrikt werte entfernen
+# remove entries without neighbourhood group
 Summary_Ind_NYC_2019<-filter(Summary_Ind_NYC_2019,neighbourhood_group != "")
 summary(Summary_Ind_NYC_2019)
 head(Summary_Ind_NYC_2019)
 
-# Indikator verschachteln
+# nested indicators
 NYC_nest<-Summary_Ind_NYC_2019 %>%
   nest(Indicator=c(Indicator, Observations))
 head(NYC_nest)
@@ -145,14 +138,14 @@ head(NYC_nest)
 #Join both datasets
 NYC<-left_join(AB_NYC_available,NYC_nest, by="neighbourhood_group")
 
-# Neighbourhood Group als Faktor
+# neighbourhood group as factor
 NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
 ```
 
 
-## Data visualisation
+# Data visualisation
 
-### Distribution of prices by room types and neighbourhood
+## Distribution of prices by room types and neighbourhood
 
 ```{r plot1, include=TRUE, echo=TRUE, eval = TRUE}
 
@@ -166,10 +159,9 @@ ggplot(data = AB_NYC,
   xlab("")+
   ylab("log (price in $ per night)")
 
-
 ```
 
-### ?
+## ?
 ```{r plots, include=TRUE, echo=TRUE, eval = TRUE}
 
 ## price distribution
@@ -191,22 +183,20 @@ ggplot(data = AB_NYC_available,
   ylab("density ")
 ```
 
-## Possible models to calculate the price of an airbnb
-
-
+# Possible models to calculate the price of an airbnb
 
 ```{r lm, include=TRUE, echo=TRUE, eval = TRUE}
 ##simple linear models
-lm.hood <- lm (data=AB_NYC, price_log~neighbourhood_group)
+lm.hood <- lm (data=AB_NYC_available, price_log~neighbourhood_group)
 summary(lm.hood)
-lm.type <- lm (data=AB_NYC, price_log~room_type)
+lm.type <- lm (data=AB_NYC_available, price_log~room_type)
 summary(lm.type)
-lm.dist <- lm (data=AB_NYC, price_log~dist.timessquare)
+lm.dist <- lm (data=AB_NYC_available, price_log~dist.timessquare)
 summary(lm.dist)
 #distance and room type on price (with interaction)
-lm.dist.type.interact <- lm (data=AB_NYC, price~dist.timessquare*room_type)
+lm.dist.type.interact <- lm (data=AB_NYC_available, price~dist.timessquare*room_type)
 summary(lm.dist.type.interact)
-ggplot(data = AB_NYC,
+ggplot(data = AB_NYC_available,
        mapping = aes(y = price,
                      x = dist.timessquare,
                      colour = room_type,
@@ -220,9 +210,9 @@ ggplot(data = AB_NYC,
 
 ```{r lm2, include=TRUE, echo=TRUE, eval = TRUE}
 #multiple linear regression
-lm.full <- lm (data=AB_NYC, price_log~room_type+neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
+lm.full <- lm (data=AB_NYC_available, price_log~room_type+neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
 summary(lm.full)
-lm.empty <- lm (data=AB_NYC, price_log~NULL)
+lm.empty <- lm (data=AB_NYC_available, price_log~NULL)
 add1(lm.empty,scope=lm.full)
 #choose value with smallest RSS
 lm.1 <- update(lm.empty,.~.+room_type) 
@@ -238,19 +228,10 @@ add1(lm.5,scope=lm.full)
 summary(lm.5)
 ```
 
-```{r lm3, include=TRUE, echo=TRUE, eval = TRUE}
-lm.full2 <- lm (data=AB_NYC_entirehome, price_log~neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
-summary(lm.full2)
-lm.full3 <- lm (data=AB_NYC_privateroom, price_log~neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
-summary(lm.full3)
-lm.full4 <- lm (data=AB_NYC_sharedroom, price_log~neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
-summary(lm.full4)
-```
 
+# Interactive map with the leaflet package
 
-## Interactive map with the leaflet package
-
-```{r}
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
 df_exp<-filter(NYC,price == max(price))
 df_cheap<-filter(NYC,price == min(price))
 ```
