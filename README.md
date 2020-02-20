@@ -9,5 +9,4 @@ The purpose of this project is to make an analysis with R. Datasets concerning A
 The project is the final work of the course "R-Bootcamp" at Hochschule Luzern, lectured by Dr. Matteo Tanadini
 
 ## Contributors
-Carole Mattmann
-Jonas Zürcher
+Carole Mattmann, Jonas Zürcher
