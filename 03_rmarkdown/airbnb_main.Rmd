@@ -22,8 +22,19 @@ library(geosphere)
 library(ggplot2)
 ```
 
-# Introduction
-We are exploring a dataset of airbnb listings in New York City in 2019.
+# Summary
+We are exploring a dataset of airbnb listings in New York City in 2019. Analyses on the prices of the listings were run and models were created to predict prices of the listings.
+
+The best model to calculate the price that was found includes 5 variables:
+* room type (factor with 3 levels, entire appartment being the highest and shared room the lowest)
+* distance to timessquare (negative effect)
+* availability (positive effect)
+* neighbourhood group (factor with 5 levels, Manhattan being the highest and Bronx the lowest)
+* minimum nights (negative effect)
+
+The airbnb dataset was merged with a dataset concerning incidents (e.g. crimes) in the concerning neigbourhoods. 
+
+The airbnb dataset is vizualized on a map in the last chapter. 
 
 # Data import and cleaning
 
@@ -56,7 +67,7 @@ AB_NYC <- cbind(AB_NYC,price_log = log(AB_NYC$price))
 
 ### remove inactive listings
 
-remove inactive listings and make new dataset to compare to full dataset
+remove inactive listings and make new dataset 
 
 ```{r removeinactive, include=TRUE, echo=TRUE, eval = TRUE}
 AB_NYC_available <- AB_NYC %>% 
@@ -76,7 +87,7 @@ dist.timessquare <- distGeo(p1=coord, p2=c(-73.985130, 40.758896))
 AB_NYC_available <- cbind(AB_NYC_available,dist.timessquare)
 ```
 
-### Prepare dataset for merging
+### Prepare dataset for merging with the second dataset
 ```{r echo=TRUE}
 # write neighbourhood group entries in lower case
 AB_NYC_available$neighbourhood_group<-tolower(AB_NYC_available$neighbourhood_group)
@@ -94,12 +105,17 @@ The dataset was downloaded from: https://data.cityofnewyork.us/City-Government/A
 ```{r}
 Ind_NYC<- read.csv("../01_data/Indicators_NYC.csv")
 head(Ind_NYC)
+```
+
+Following changes have been made to the dataset:
+
+```{r}
+
 
 #Filter Data from 2019
 Ind_NYC_2019<-data.frame("neighbourhood_group2"= Ind_NYC$Geographic.Identifier, "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
 head(Ind_NYC_2019)
 Ind_NYC_2019_cleaned<-Ind_NYC_2019
-
 
 #remove numbers
 Ind_NYC_2019_cleaned$neighbourhood_group <-gsub("[0-9]","", Ind_NYC_2019_cleaned$neighbourhood_group2 )
@@ -123,7 +139,6 @@ Summary_Ind_NYC_2019<-Ind_NYC_2019_cleaned %>%
   summarise(Observations=sum(Incidents,na.rm = TRUE))
 summary(Summary_Ind_NYC_2019)
 
-
 # remove entries without neighbourhood group
 Summary_Ind_NYC_2019<-filter(Summary_Ind_NYC_2019,neighbourhood_group != "")
 summary(Summary_Ind_NYC_2019)
@@ -134,6 +149,9 @@ NYC_nest<-Summary_Ind_NYC_2019 %>%
   nest(Indicator=c(Indicator, Observations))
 head(NYC_nest)
 ```
+
+## Merge datasets
+
 ```{r}
 #Join both datasets
 NYC<-left_join(AB_NYC_available,NYC_nest, by="neighbourhood_group")
@@ -149,7 +167,7 @@ NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
 
 ```{r plot1, include=TRUE, echo=TRUE, eval = TRUE}
 
-ggplot(data = AB_NYC,
+ggplot(data = AB_NYC_available,
        mapping = aes(y = price_log,
                      x = "",
                      group = neighbourhood_group,
@@ -161,10 +179,13 @@ ggplot(data = AB_NYC,
 
 ```
 
-## ?
-```{r plots, include=TRUE, echo=TRUE, eval = TRUE}
+Prices of the room type "entire home/apt" have the highest median, followed by "private room"" and lastly "shared room"", which is not surprising. 25. and 75. quantile for "entire home/apt" and "private room" are similarly distributed, for shared room there is no clear pattern. 
 
-## price distribution
+For all room types, median prices in neighbourhood "Manhattan" are the highest. For for "entire home/apt" and "private room" the second highest mediam prices are in Manhattan. 
+
+## Distribution of prices 
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
+
 ggplot(data = AB_NYC,
        mapping = aes(x = price_log,
                      group = room_type,
@@ -174,8 +195,13 @@ ggplot(data = AB_NYC,
   geom_density() +
   xlab("log (price in $ per night)")+
   ylab("density ")
+```
+Prices for all room types are skewed to the right. Even with logarithmic display of prices, this is still clearly the case. 
 
-## availability distribution without 0
+## Availability of appartments 
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
+
 ggplot(data = AB_NYC_available,
        mapping = aes(x = availability_365)) +
   geom_histogram() +
@@ -183,9 +209,16 @@ ggplot(data = AB_NYC_available,
   ylab("density ")
 ```
 
+There are a lot of listings with very low or very high (almost year round) availablity. Listings with no available days in 2019 were removed from the dataset. This distribution was not taken into account when looking at the prices.  
+
+
 # Possible models to calculate the price of an airbnb
 
-```{r lm, include=TRUE, echo=TRUE, eval = TRUE}
+## Simple linear models
+
+Impact of several variables on the price are analysed. The highest R2 is reached with "room type".
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
 ##simple linear models
 lm.hood <- lm (data=AB_NYC_available, price_log~neighbourhood_group)
 summary(lm.hood)
@@ -193,8 +226,15 @@ lm.type <- lm (data=AB_NYC_available, price_log~room_type)
 summary(lm.type)
 lm.dist <- lm (data=AB_NYC_available, price_log~dist.timessquare)
 summary(lm.dist)
+```
+
+## Multiple linear model
+
+A linear model using "distance to timessquare" and "room type" (as factor) with interactions to calculate the price is applied.
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
 #distance and room type on price (with interaction)
-lm.dist.type.interact <- lm (data=AB_NYC_available, price~dist.timessquare*room_type)
+lm.dist.type.interact <- lm (data=AB_NYC_available, price_log~dist.timessquare*room_type)
 summary(lm.dist.type.interact)
 ggplot(data = AB_NYC_available,
        mapping = aes(y = price,
@@ -208,12 +248,27 @@ ggplot(data = AB_NYC_available,
   geom_smooth(method="lm")
 ```
 
-```{r lm2, include=TRUE, echo=TRUE, eval = TRUE}
-#multiple linear regression
+There is a tendency for all room types that the price is lower if the place is further from Times Square. The interactions are not significant.
+
+## Multiple linear model by choosing smallest RSS
+
+A multiple linear model is created. The best model to calculate the price we can find includes 5 variables:
+* room type (factor with 3 levels, entire appartment being the highest and shared room the lowest)
+* distance to timessquare (negative effect)
+* availability (positive effect)
+* neighbourhood group (factor with 5 levels, Manhattan being the highest and Bronx the lowest)
+* minimum nights (negative effect)
+
+
+```{r lm2, eval=TRUE, include=TRUE, echo=TRUE}
+
+#full model
 lm.full <- lm (data=AB_NYC_available, price_log~room_type+neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
-summary(lm.full)
+
+#empty model
 lm.empty <- lm (data=AB_NYC_available, price_log~NULL)
 add1(lm.empty,scope=lm.full)
+
 #choose value with smallest RSS
 lm.1 <- update(lm.empty,.~.+room_type) 
 add1(lm.1,scope=lm.full)
@@ -225,6 +280,9 @@ lm.4 <- update(lm.3,.~.+neighbourhood_group)
 add1(lm.4,scope=lm.full)
 lm.5 <- update(lm.4,.~.+minimum_nights)
 add1(lm.5,scope=lm.full)
+```
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE}
 summary(lm.5)
 ```
 
