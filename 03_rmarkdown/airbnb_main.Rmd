@@ -13,7 +13,7 @@ output:
 
 ```
 
-Included packages: 
+Packages used: 
 
 ```{r packages, include=TRUE, echo=TRUE, eval = TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -23,9 +23,10 @@ library(ggplot2)
 ```
 
 # Summary
-We are exploring a dataset of airbnb listings in New York City in 2019. Analyses on the prices of the listings were run and models were created to predict prices of the listings.
+We are exploring a dataset of airbnb listings in New York City in 2019. 
 
-The best model to calculate the price that was found includes 5 variables:
+Analyses on the prices of the listings were run and models were created to predict prices of the listings.The best model to calculate the price that was found includes 5 variables:
+
 * room type (factor with 3 levels, entire appartment being the highest and shared room the lowest)
 * distance to timessquare (negative effect)
 * availability (positive effect)
@@ -45,10 +46,16 @@ The dataset was downloaded from: https://www.kaggle.com/dgomonov/new-york-city-a
 ### Import
 ```{r import, eval=TRUE, echo=TRUE, include=TRUE}
 AB_NYC <- read.csv("../01_data/AB_NYC_2019.csv", header=TRUE)
-str(AB_NYC)
+
 ```
 
-Following changes have been made to the dataset:
+### Overview of dataset
+```{r, eval=TRUE, echo=TRUE, include=TRUE}
+str(AB_NYC,width=80,strict.width="cut")
+
+```
+
+Following changes are made to the dataset:
 
 ### remove price 0
 
@@ -200,7 +207,7 @@ Prices for all room types are skewed to the right. Even with logarithmic display
 
 ## Availability of appartments 
 
-```{r, include=TRUE, echo=TRUE, eval = TRUE}
+```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 
 ggplot(data = AB_NYC_available,
        mapping = aes(x = availability_365)) +
@@ -220,10 +227,19 @@ Impact of several variables on the price are analysed. The highest R2 is reached
 
 ```{r, include=TRUE, echo=TRUE, eval = TRUE}
 ##simple linear models
+
+# price ~ neighbourhood group
+
 lm.hood <- lm (data=AB_NYC_available, price_log~neighbourhood_group)
 summary(lm.hood)
+
+# price ~ room type
+
 lm.type <- lm (data=AB_NYC_available, price_log~room_type)
 summary(lm.type)
+
+# price ~ dist.timessquare
+
 lm.dist <- lm (data=AB_NYC_available, price_log~dist.timessquare)
 summary(lm.dist)
 ```
@@ -232,7 +248,7 @@ summary(lm.dist)
 
 A linear model using "distance to timessquare" and "room type" (as factor) with interactions to calculate the price is applied.
 
-```{r, include=TRUE, echo=TRUE, eval = TRUE}
+```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 #distance and room type on price (with interaction)
 lm.dist.type.interact <- lm (data=AB_NYC_available, price_log~dist.timessquare*room_type)
 summary(lm.dist.type.interact)
@@ -253,6 +269,7 @@ There is a tendency for all room types that the price is lower if the place is f
 ## Multiple linear model by choosing smallest RSS
 
 A multiple linear model is created. The best model to calculate the price we can find includes 5 variables:
+
 * room type (factor with 3 levels, entire appartment being the highest and shared room the lowest)
 * distance to timessquare (negative effect)
 * availability (positive effect)
@@ -260,10 +277,16 @@ A multiple linear model is created. The best model to calculate the price we can
 * minimum nights (negative effect)
 
 
-```{r lm2, eval=TRUE, include=TRUE, echo=TRUE}
+```{r lm2, eval=TRUE, include=TRUE, echo=TRUE, results=FALSE}
 
 #full model
-lm.full <- lm (data=AB_NYC_available, price_log~room_type+neighbourhood_group+minimum_nights+number_of_reviews+calculated_host_listings_count+availability_365+dist.timessquare)
+lm.full <- lm (data=AB_NYC_available, price_log~room_type
+               +neighbourhood_group
+               +minimum_nights
+               +number_of_reviews
+               +calculated_host_listings_count
+               +availability_365
+               +dist.timessquare)
 
 #empty model
 lm.empty <- lm (data=AB_NYC_available, price_log~NULL)
