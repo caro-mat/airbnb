@@ -3,8 +3,8 @@ title: "Airbnb in New York City"
 author: "Carole Mattmann und Jonas Zuercher"
 date: "13 Februar 2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 
@@ -50,7 +50,7 @@ The dataset was downloaded from: https://www.kaggle.com/dgomonov/new-york-city-a
 
 ### Import
 ```{r import, eval=TRUE, echo=TRUE, include=TRUE}
-AB_NYC <- read.csv("./01_data/AB_NYC_2019.csv", header=TRUE)
+AB_NYC <- read.csv("../01_data/AB_NYC_2019.csv", header=TRUE)
 
 ```
 
@@ -118,7 +118,7 @@ AB_NYC_available$neighbourhood_group<-factor(AB_NYC_available$neighbourhood_grou
 The dataset was downloaded from: https://data.cityofnewyork.us/City-Government/Agency-Performance-Mapping-Indicators-Annual/gsj6-6rwm 
 
 ```{r}
-Ind_NYC<- read.csv("./01_data/Indicators_NYC.csv")
+Ind_NYC<- read.csv("../01_data/Indicators_NYC.csv")
 
 ```
 ### Overview of dataset
@@ -174,7 +174,7 @@ The dataframe is transformed into a nested dataframe to improve readiablity afte
 # nested indicators
 NYC_nest<-Summary_Ind_NYC_2019 %>%
   nest(Indicator=c(Indicator, Observations))
-str(NYC_nest)
+head(NYC_nest)
 ```
 
 ## Merge datasets
@@ -189,7 +189,7 @@ NYC<-left_join(AB_NYC_available,NYC_nest, by="neighbourhood_group")
 NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
 
 # show new dataframe
-head(NYC)
+head(NYC,1)
 ```
 
 
