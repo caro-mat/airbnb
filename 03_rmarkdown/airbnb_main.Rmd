@@ -1,5 +1,5 @@
 ---
-title: "airbnb in New York City"
+title: "Airbnb in New York City"
 author: "Carole Mattmann und Jonas Zuercher"
 date: "13 Februar 2020"
 output:
@@ -20,6 +20,8 @@ library(dplyr)
 library(tidyverse)
 library(geosphere)
 library(ggplot2)
+library(tinytex)
+library(leaflet)
 ```
 
 # Summary
@@ -35,17 +37,20 @@ Analyses on the prices of the listings were run and models were created to predi
 
 The airbnb dataset was merged with a dataset concerning incidents (e.g. crimes) in the concerning neigbourhoods. 
 
-The airbnb dataset is vizualized on a map in the last chapter. 
+The airbnb dataset is vizualized in two maps in the last chapter in two ways:
+
+* All  datapoints are visualized on the map and coloured depending on their price range.
+* The most expensive and cheapest housings are visualized with personalized markers. Also an distance calculator is included in the map. 
 
 # Data import and cleaning
 
-## airbnb dataset
+## Airbnb dataset
 
 The dataset was downloaded from: https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data
 
 ### Import
 ```{r import, eval=TRUE, echo=TRUE, include=TRUE}
-AB_NYC <- read.csv("../01_data/AB_NYC_2019.csv", header=TRUE)
+AB_NYC <- read.csv("./01_data/AB_NYC_2019.csv", header=TRUE)
 
 ```
 
@@ -57,31 +62,31 @@ str(AB_NYC,width=80,strict.width="cut")
 
 Following changes are made to the dataset:
 
-### remove price 0
+### Remove price 0
 
-remove all listings with price 0
+Remove all listings with price 0
 
 ```{r price0, include=TRUE, echo=TRUE, eval = TRUE}
 AB_NYC <-AB_NYC[AB_NYC$price > 0,]
 ```
 
-### add log price
+### Add log price
 
-add logarithmic price for analysis purposes 
+Add logarithmic price for analysis purposes 
 ```{r pricelog, include=TRUE, echo=TRUE, eval = TRUE}
 AB_NYC <- cbind(AB_NYC,price_log = log(AB_NYC$price))
 ```
 
-### remove inactive listings
+### Remove inactive listings
 
-remove inactive listings and make new dataset 
+Remove inactive listings and make new dataset 
 
 ```{r removeinactive, include=TRUE, echo=TRUE, eval = TRUE}
 AB_NYC_available <- AB_NYC %>% 
   filter(availability_365 > 0) 
 ```
 
-### add distance to Times Square to model
+### Add distance to Times Square to model
 
 We want to make a statement about how central the place is. Therefore the distance to Times Square is caculated using the latitude and longitude of the listings. The package "geosphere" is used.
 
@@ -95,6 +100,9 @@ AB_NYC_available <- cbind(AB_NYC_available,dist.timessquare)
 ```
 
 ### Prepare dataset for merging with the second dataset
+
+We want to merge this dataset with the Incident dataset. Therefore we need to transform the neighbour_group column by changing the letters to lowercase, delete empty spaces and defining the entries as factors. 
+
 ```{r echo=TRUE}
 # write neighbourhood group entries in lower case
 AB_NYC_available$neighbourhood_group<-tolower(AB_NYC_available$neighbourhood_group)
@@ -106,65 +114,82 @@ AB_NYC_available$neighbourhood_group <-gsub(" ","", AB_NYC_available$neighbourho
 AB_NYC_available$neighbourhood_group<-factor(AB_NYC_available$neighbourhood_group)
 ```
 
-## incidents dataset
+## Incidents dataset
 The dataset was downloaded from: https://data.cityofnewyork.us/City-Government/Agency-Performance-Mapping-Indicators-Annual/gsj6-6rwm 
 
 ```{r}
-Ind_NYC<- read.csv("../01_data/Indicators_NYC.csv")
-head(Ind_NYC)
+Ind_NYC<- read.csv("./01_data/Indicators_NYC.csv")
+
+```
+### Overview of dataset
+```{r}
+str(Ind_NYC)
 ```
 
-Following changes have been made to the dataset:
+### Producer a dataframe for 2019 including Neighbourhoods, indicators and the incident numbers
+
+First a dataframe which only contains the neighbour_group, the indicator and the incidents of 2019 has been produced. 
 
 ```{r}
+Ind_NYC_2019_cleaned<-data.frame("neighbourhood_group"= Ind_NYC$Geographic.Identifier, "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
+head(Ind_NYC_2019_cleaned)
+```
+### Transform dataframe for further processing
 
+We want to merge this dataframe with the airbnb dataset. Therefore we need to transform the neighbour_group column by removing the numbers of the neighbourhood_group entries, changing the letters to lowercase, delete empty spaces and defining the entries as factors. 
 
-#Filter Data from 2019
-Ind_NYC_2019<-data.frame("neighbourhood_group2"= Ind_NYC$Geographic.Identifier, "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
-head(Ind_NYC_2019)
-Ind_NYC_2019_cleaned<-Ind_NYC_2019
-
-#remove numbers
-Ind_NYC_2019_cleaned$neighbourhood_group <-gsub("[0-9]","", Ind_NYC_2019_cleaned$neighbourhood_group2 )
-#remove empty spaces
-Ind_NYC_2019_cleaned$neighbourhood_group <-gsub(" ","", Ind_NYC_2019_cleaned$neighbourhood_group )
-#lowercases
+```{r}
+#Remove numbers from neighbourhood_group column
+Ind_NYC_2019_cleaned$neighbourhood_group <-gsub("[0-9]","", Ind_NYC_2019_cleaned$neighbourhood_group)
+#Remove empty spaces from neighbourhood_group column
+Ind_NYC_2019_cleaned$neighbourhood_group <-gsub(" ","", Ind_NYC_2019_cleaned$neighbourhood_group)
+#Change all lettes from neighbourhood_group column to lower case
 Ind_NYC_2019_cleaned$neighbourhood_group<-tolower(Ind_NYC_2019_cleaned$neighbourhood_group)
-#factor
+#Change type of the neighbourhood_group column to factor
 Ind_NYC_2019_cleaned$neighbourhood_group<-factor(Ind_NYC_2019_cleaned$neighbourhood_group)
 
 #overview
-head(Ind_NYC_2019_cleaned$Incidents)  
-head(Ind_NYC_2019_cleaned$neighbourhood_group)
-summary(Ind_NYC_2019_cleaned)
-summary(Ind_NYC_2019_cleaned$Indicator)
-levels(Ind_NYC_2019_cleaned$neighbourhood_group)
+head(Ind_NYC_2019_cleaned)
 
+```
+### Summarise Observation per neighbourhood_group
+
+We want only one row per neighbourhood_group entry and Indicator. Therefore we first group the entries by neighbourhood_groups and then summarize the incidents numbers. Because some entries are given in percentage those entries result in NA entries after this process and need to be removed with the filter feature. 
+```{r}
 # sum of incidents per neighbourhood group and indicator 
 Summary_Ind_NYC_2019<-Ind_NYC_2019_cleaned %>%
   group_by(neighbourhood_group=Ind_NYC_2019_cleaned$neighbourhood_group,Indicator) %>%
   summarise(Observations=sum(Incidents,na.rm = TRUE))
-summary(Summary_Ind_NYC_2019)
 
-# remove entries without neighbourhood group
+# Remove entries without a neighbourhood group from the dataframe
 Summary_Ind_NYC_2019<-filter(Summary_Ind_NYC_2019,neighbourhood_group != "")
-summary(Summary_Ind_NYC_2019)
 head(Summary_Ind_NYC_2019)
 
+```
+### Transform dataframe into a nested dataframe
+
+The dataframe is transformed into a nested dataframe to improve readiablity after merging it with the airbnb dataset. 
+
+```{r}
 # nested indicators
 NYC_nest<-Summary_Ind_NYC_2019 %>%
   nest(Indicator=c(Indicator, Observations))
-head(NYC_nest)
+str(NYC_nest)
 ```
 
 ## Merge datasets
 
-```{r}
+The processed dataset are merged together by the neighbour_group column. 
+
+```{r message=FALSE, warning=FALSE}
 #Join both datasets
 NYC<-left_join(AB_NYC_available,NYC_nest, by="neighbourhood_group")
 
 # neighbourhood group as factor
 NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
+
+# show new dataframe
+head(NYC)
 ```
 
 
@@ -310,14 +335,133 @@ summary(lm.5)
 ```
 
 
-# Interactive map with the leaflet package
+# Interactive maps with the leaflet package
 
-```{r, include=TRUE, echo=TRUE, eval = TRUE}
-df_exp<-filter(NYC,price == max(price))
-df_cheap<-filter(NYC,price == min(price))
+In this part the leaflet package is used to produced interactive maps of the merged dataset. 
+
+## Interactive map with three coloured price groups
+
+The first interactive map shows all housings with a colored marker. The color varies with the price per night for the housings. 
+
+### Prepare groups for visualization in the map
+
+To adjust the color depending on the price of the datapoints a if-else loop is used. The same approach is used to classify the datapoint into the three groups Cheap, Medium and Expensive. 
+
+```{r}
+# Function that chose the color depending on the price of the housing
+getColor <- function(NYC) {
+  sapply(NYC$price, function(price) {
+    if(price <= 50) {
+      "green"
+    } else if(price <= 200) {
+      "orange"
+    } else {
+      "red"
+    } })
+}
+
+# Function that chose a group name depending on the price of the housing
+getGroup <- function(NYC) {
+  sapply(NYC$price, function(price) {
+    if(price <= 50) {
+      "Cheap"
+    } else if(price <= 200) {
+      "Medium"
+    } else {
+      "Expensive"
+    } })
+}
 ```
 
+### Visualization of a color coded interactive map
 
+Its possible to zoom and change settings in this interactive map. Two different base map layers can be chosen. Furthermore only certain price groups like Cheap can be shown in the map. The green points are housings up to 50 dollar per night. The yellow points are housings up to 200 $ per night and the red ones are the housing that are even more expensive. Each marker shows detailed information with a popup if its clicked.  
+
+```{r}
+map<-leaflet(NYC) %>%
+  #Base layer
+  addTiles(group = "OSM") %>%
+  addProviderTiles(providers$CartoDB.Positron,group="GREY")%>%
+  
+  # Overlay groups - Adding price dependant colored housing markers
+  addCircleMarkers(lng = NYC$longitude, 
+                   lat = NYC$latitude, 
+                   color=getColor(NYC),
+                   popup = paste0("Price per night: ", as.character(NYC$price), " $",
+                                         "<br>","Room type: ",NYC$room_type, 
+                                         "<br>","Distance to Times Square: ",as.character(round(NYC$dist.timessquare/1000, digits=1))," km"),
+                   radius=0.1,group = getGroup(NYC)) %>%
+  
+  #LayercOntrol
+  addLayersControl(baseGroups = c("OSM","GREY"), 
+                   overlayGroups = c("Cheap","Medium","Expensive"))
+
+
+map
+```
+
+## Interactive map with the most expensive and cheapest housings 
+
+The second interactive map shows the most expensive and the cheapest housings of the dataset with personalized markers. 
+
+### Prepare dataframe for cheapest and most expensive spots in New York
+
+First the most expensive and the cheapest housings have to be found in the dataset and saved in a dataframe. 
+
+```{r echo=FALSE}
+# Most expensive place in the NYC dataframe
+df_exp<-filter(NYC,price == max(price))
+
+# Cheapest places in the NYC dataframe
+df_cheap<-filter(NYC,price == min(price))
+```
+### Prepare Icons
+The icons have to be prepared for the visualization. Therefore the pictures are imported. 
+```{r}
+castle<-makeIcon(
+  iconUrl = "../01_data/castle.png",
+  iconWidth = 20, iconHeight = 20,
+)
+
+hovel<-makeIcon(
+  iconUrl = "../01_data/hovel.png",
+  iconWidth = 20, iconHeight = 20,
+)
+
+```
+
+### Visualization of the most expensive and cheapest airbnb housings in New York
+
+Its possible to zoom and change settings in this interactive map. Two different base map layers can be chosen. Furthermore only the cheapest or the most expensive datapoints can be shown in the map. The most expensive housing is visualized with a custom castle icon. The cheapest housings are visualized with a custom hovel icon. Each marker shows detailed information with a popup if its clicked.  
+
+```{r}
+map2<-leaflet(NYC) %>%
+  #Base
+  addTiles(group = "OSM") %>%
+  addProviderTiles(providers$CartoDB.Positron,group="GREY")%>%
+ 
+  # Measure
+ 
+  addMeasure(primaryLengthUnit = "kilometers",activeColor="red")%>%
+  
+  # Overlay groups
+  addMarkers(lng=df_exp$longitude, 
+             lat=df_exp$latitude, 
+              icon= castle, popup = paste0("Price per night: ", as.character(df_cheap$exp), " $",
+                                         "<br>","Room type: ",df_exp$room_type, 
+                                         "<br>","Distance to Times Square: ",as.character(round(df_exp$dist.timessquare/1000, digits=1))," km"),
+             group=("Most expensive Airbnb Housing")) %>%
+  addMarkers(lng=df_cheap$longitude,
+             lat=df_cheap$latitude, 
+             icon= hovel, popup = paste0("Price per night: ", as.character(df_cheap$price), " $",
+                                         "<br>","Room type: ",df_cheap$room_type, 
+                                         "<br>","Distance to Times Square: ",as.character(round(df_cheap$dist.timessquare/1000, digits=1))," km"),
+             group=("Cheapest Airbnb Housing")) %>%
+  #LayerCOntrol
+  addLayersControl(baseGroups = c("OSM","GREY"), overlayGroups = c("Most expensive Airbnb Housing","Cheapest Airbnb Housing"))
+
+map2
+```
 
 
 
