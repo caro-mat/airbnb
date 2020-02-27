@@ -282,9 +282,12 @@ A linear model using "distance to timessquare" and "room type" (as factor) with 
 #distance and room type on price (with interaction)
 lm.dist.type.interact <- lm (data=AB_NYC_available, price_log~dist.timessquare*room_type)
 summary(lm.dist.type.interact)
+
 ```
 
-The model is plotted using three different regression lines per room type. There is a tendency for all room types that the price is lower if the place is further from Times Square. The interactions are not significant.
+The model is plotted using three different regression lines per room type. There is a tendency for all room types that the price is lower if the place is further from Times Square. 
+
+Please note: The interactions are not significant but are still included as they are shown in the plot. 
 
 ```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 ggplot(data = AB_NYC_available,
