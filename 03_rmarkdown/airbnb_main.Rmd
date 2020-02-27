@@ -124,15 +124,16 @@ Ind_NYC<- read.csv("../01_data/Indicators_NYC.csv")
 ```
 ### Overview of dataset
 ```{r}
-str(Ind_NYC)
+str(Ind_NYC,width=80,strict.width="cut")
 ```
 
-### Producer a dataframe for 2019 including Neighbourhoods, indicators and the incident numbers
+### Produce a dataframe for 2019 including Neighbourhoods, indicators and the incident numbers
 
 First a dataframe which only contains the neighbour_group, the indicator and the incidents of 2019 has been produced. 
 
 ```{r}
-Ind_NYC_2019_cleaned<-data.frame("neighbourhood_group"= Ind_NYC$Geographic.Identifier, "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
+Ind_NYC_2019_cleaned<-data.frame("neighbourhood_group"= Ind_NYC$Geographic.Identifier,
+                                 "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
 head(Ind_NYC_2019_cleaned)
 ```
 ### Transform dataframe for further processing
@@ -191,12 +192,15 @@ NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
 
 # show new dataframe
 head(NYC,1)
+
 ```
 
 
 # Data visualisation
 
 ## Distribution of prices by room types and neighbourhood
+
+Prices of airbnb listings are shown in boxplots, grouped by room type and location (neighbourhood group) are shown below.
 
 ```{r plot1, include=TRUE, echo=TRUE, eval = TRUE}
 
@@ -217,6 +221,9 @@ Prices of the room type "entire home/apt" have the highest median, followed by "
 For all room types, median prices in neighbourhood "Manhattan" are the highest. For for "entire home/apt" and "private room" the second highest mediam prices are in Manhattan. 
 
 ## Distribution of prices 
+
+The distribution of prices, grouped by room type is shown below.
+
 ```{r, include=TRUE, echo=TRUE, eval = TRUE}
 
 ggplot(data = AB_NYC,
@@ -229,17 +236,20 @@ ggplot(data = AB_NYC,
   xlab("log (price in $ per night)")+
   ylab("density ")
 ```
+
 Prices for all room types are skewed to the right. Even with logarithmic display of prices, this is still clearly the case. 
 
 ## Availability of appartments 
 
-```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
+The availability of the listings is shown below in days per year.
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE, message=FALSE}
 
 ggplot(data = AB_NYC_available,
        mapping = aes(x = availability_365)) +
   geom_histogram() +
-  xlab("availability")+
-  ylab("density ")
+  xlab("availability in days per year")+
+  ylab("number of listings")
 ```
 
 There are a lot of listings with very low or very high (almost year round) availablity. Listings with no available days in 2019 were removed from the dataset. This distribution was not taken into account when looking at the prices.  
@@ -252,8 +262,6 @@ There are a lot of listings with very low or very high (almost year round) avail
 Impact of several variables on the price are analysed. The highest R2 is reached with "room type".
 
 ```{r, include=TRUE, echo=TRUE, eval = TRUE}
-##simple linear models
-
 # price ~ neighbourhood group
 
 lm.hood <- lm (data=AB_NYC_available, price_log~neighbourhood_group)
@@ -278,6 +286,11 @@ A linear model using "distance to timessquare" and "room type" (as factor) with 
 #distance and room type on price (with interaction)
 lm.dist.type.interact <- lm (data=AB_NYC_available, price_log~dist.timessquare*room_type)
 summary(lm.dist.type.interact)
+```
+
+The model is plotted using three different regression lines per room type. There is a tendency for all room types that the price is lower if the place is further from Times Square. The interactions are not significant.
+
+```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 ggplot(data = AB_NYC_available,
        mapping = aes(y = price,
                      x = dist.timessquare,
@@ -290,7 +303,6 @@ ggplot(data = AB_NYC_available,
   geom_smooth(method="lm")
 ```
 
-There is a tendency for all room types that the price is lower if the place is further from Times Square. The interactions are not significant.
 
 ## Multiple linear model by choosing smallest RSS
 
@@ -336,6 +348,7 @@ summary(lm.5)
 ```
 
 
+
 # Interactive maps with the leaflet package
 
 In this part the leaflet package is used to produced interactive maps of the merged dataset. 
@@ -378,7 +391,7 @@ getGroup <- function(NYC) {
 
 Its possible to zoom and change settings in this interactive map. Two different base map layers can be chosen. Furthermore only certain price groups like Cheap can be shown in the map. The green points are housings up to 50 dollar per night. The yellow points are housings up to 200 $ per night and the red ones are the housing that are even more expensive. Each marker shows detailed information with a popup if its clicked.  
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 map<-leaflet(NYC) %>%
   #Base layer
   addTiles(group = "OSM") %>%
@@ -390,7 +403,9 @@ map<-leaflet(NYC) %>%
                    color=getColor(NYC),
                    popup = paste0("Price per night: ", as.character(NYC$price), " $",
                                          "<br>","Room type: ",NYC$room_type, 
-                                         "<br>","Distance to Times Square: ",as.character(round(NYC$dist.timessquare/1000, digits=1))," km"),
+                                         "<br>","Distance to Times Square: ",
+                                  as.character(round(NYC$dist.timessquare/1000, digits=1)),
+                                  " km"),
                    radius=0.1,group = getGroup(NYC)) %>%
   
   #LayercOntrol
@@ -448,18 +463,29 @@ map2<-leaflet(NYC) %>%
   # Overlay groups
   addMarkers(lng=df_exp$longitude, 
              lat=df_exp$latitude, 
-              icon= castle, popup = paste0("Price per night: ", as.character(df_cheap$exp), " $",
-                                         "<br>","Room type: ",df_exp$room_type, 
-                                         "<br>","Distance to Times Square: ",as.character(round(df_exp$dist.timessquare/1000, digits=1))," km"),
+              icon= castle, popup = paste0("Price per night: ", 
+                                           as.character(df_cheap$exp), 
+                                           " $",
+                                           "<br>","Room type: ",
+                                         df_exp$room_type, 
+                                         "<br>","Distance to Times Square: ",
+                                         as.character(round(df_exp$dist.timessquare/1000, digits=1))," km"),
              group=("Most expensive Airbnb Housing")) %>%
   addMarkers(lng=df_cheap$longitude,
              lat=df_cheap$latitude, 
-             icon= hovel, popup = paste0("Price per night: ", as.character(df_cheap$price), " $",
-                                         "<br>","Room type: ",df_cheap$room_type, 
-                                         "<br>","Distance to Times Square: ",as.character(round(df_cheap$dist.timessquare/1000, digits=1))," km"),
+             icon= hovel, popup = paste0("Price per night: ", 
+                                         as.character(df_cheap$price), 
+                                         " $",
+                                         "<br>","Room type: ",
+                                         df_cheap$room_type, 
+                                         "<br>",
+                                         "Distance to Times Square: ",
+                                         as.character(round(df_cheap$dist.timessquare/1000,
+                                                            digits=1))," km"),
              group=("Cheapest Airbnb Housing")) %>%
   #LayerCOntrol
-  addLayersControl(baseGroups = c("OSM","GREY"), overlayGroups = c("Most expensive Airbnb Housing","Cheapest Airbnb Housing"))
+  addLayersControl(baseGroups = c("OSM","GREY"), 
+                   overlayGroups = c("Most expensive Airbnb Housing","Cheapest Airbnb Housing"))
 
 map2
 ```
