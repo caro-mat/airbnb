@@ -12,5 +12,5 @@ Carole Mattmann, Jonas Zürcher
 
 # Folder structure
 * 01_data: raw data
-* 02_analysis: r scripts used for analysis purposes. Does not need to be considered, all relevant data is in folder 03.
+* 02_analysis: r scripts used for analysis purposes. Does not need to be considered, all relevant outcomes are in folder 03_rmarkdown.
 * 03_rmarkdown: R Markdown Script and HTML File 
