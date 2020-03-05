@@ -8,23 +8,10 @@ output:
   word_document: default
 always_allow_html: true
 ---
-
-
-Packages used: 
-
-```{r packages, include=TRUE, echo=TRUE, eval = TRUE, message=FALSE, warning=FALSE}
-library(dplyr)
-library(tidyverse)
-library(geosphere)
-library(ggplot2)
-library(tinytex)
-library(leaflet)
-```
-
 # Summary
 We are exploring a dataset of airbnb listings in New York City in 2019. 
 
-Analyses on the prices of the listings were run and models were created to predict prices of the listings.The best model to calculate the price that was found includes 5 variables:
+Analyses on the prices of the listings were run and models were created to predict prices of the listings. The best model to calculate the price that was found includes 5 variables:
 
 * room type (factor with 3 levels, entire appartment being the highest and shared room the lowest)
 * distance to timessquare (negative effect)
@@ -39,6 +26,18 @@ The airbnb dataset is vizualized in two maps in the last chapter in two ways:
 * All  datapoints are visualized on the map and coloured depending on their price range.
 * The most expensive and cheapest housings are visualized with personalized markers. Also an distance calculator is included in the map. 
 
+# Packages 
+
+We used the following packages to work with the data. 
+
+```{r packages, include=TRUE, echo=TRUE, eval = TRUE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyverse)
+library(geosphere)
+library(ggplot2)
+library(tinytex)
+library(leaflet)
+```
 # Data import and cleaning
 
 ## Airbnb dataset
@@ -104,7 +103,7 @@ We want to merge this dataset with the Incident dataset. Therefore we need to tr
 # write neighbourhood group entries in lower case
 AB_NYC_available$neighbourhood_group<-tolower(AB_NYC_available$neighbourhood_group)
 
-#remove spaces from neighbourhood groups
+# remove spaces from neighbourhood groups
 AB_NYC_available$neighbourhood_group <-gsub(" ","", AB_NYC_available$neighbourhood_group)
 
 # neighbourhood group as factor
@@ -129,7 +128,8 @@ First a dataframe which only contains the neighbour_group, the indicator and the
 
 ```{r}
 Ind_NYC_2019_cleaned<-data.frame("neighbourhood_group"= Ind_NYC$Geographic.Identifier,
-                                 "Indicator"=Ind_NYC$Indicator,"Incidents"=Ind_NYC$FY2019)
+                                 "Indicator"=Ind_NYC$Indicator,
+                                 "Incidents"=Ind_NYC$FY2019)
 head(Ind_NYC_2019_cleaned)
 ```
 ### Transform dataframe for further processing
@@ -185,10 +185,6 @@ NYC<-left_join(AB_NYC_available,NYC_nest, by="neighbourhood_group")
 
 # neighbourhood group as factor
 NYC$neighbourhood_group<-factor(NYC$neighbourhood_group)
-
-# show new dataframe
-head(NYC,1)
-
 ```
 
 
@@ -276,7 +272,7 @@ summary(lm.dist)
 
 ## Multiple linear model
 
-A linear model using "distance to timessquare" and "room type" (as factor) with interactions to calculate the price is applied.
+A linear model using "distance to timessquare" and "room type" (as factor) with an assumed interaction is applied to calculate the price.
 
 ```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 #distance and room type on price (with interaction)
@@ -287,18 +283,17 @@ summary(lm.dist.type.interact)
 
 The model is plotted using three different regression lines per room type. There is a tendency for all room types that the price is lower if the place is further from Times Square. 
 
-Please note: The interactions are not significant but are still included as they are shown in the plot. 
+Please note: The interactions are not significant considering the p-values.  
 
 ```{r, include=TRUE, echo=TRUE, eval = TRUE, warning=FALSE}
 ggplot(data = AB_NYC_available,
-       mapping = aes(y = price,
+       mapping = aes(y = log(price),
                      x = dist.timessquare,
                      colour = room_type,
                      group = room_type)) +
   geom_point(alpha = 0.03) +
   xlab("distance to timessquare in m")+
-  ylab("price in $ per night")+
-  ylim(0,300)+
+  ylab("log (price in $ per night)")+
   geom_smooth(method="lm")
 ```
 
@@ -403,8 +398,7 @@ map<-leaflet(NYC) %>%
                    popup = paste0("Price per night: ", as.character(NYC$price), " $",
                                          "<br>","Room type: ",NYC$room_type, 
                                          "<br>","Distance to Times Square: ",
-                                  as.character(round(NYC$dist.timessquare/1000, digits=1)),
-                                  " km"),
+                                  as.character(round(NYC$dist.timessquare/1000, digits=1)), " km"),
                    radius=0.1,group = getGroup(NYC)) %>%
   
   #LayercOntrol
@@ -435,19 +429,17 @@ The icons have to be prepared for the visualization. Therefore the pictures are 
 ```{r}
 castle<-makeIcon(
   iconUrl = "../01_data/castle.png",
-  iconWidth = 20, iconHeight = 20,
-)
+  iconWidth = 20, iconHeight = 20)
 
 hovel<-makeIcon(
   iconUrl = "../01_data/hovel.png",
-  iconWidth = 20, iconHeight = 20,
-)
+  iconWidth = 20, iconHeight = 20)
 
 ```
 
 ### Visualization of the most expensive and cheapest airbnb housings in New York
 
-Its possible to zoom and change settings in this interactive map. Two different base map layers can be chosen. Furthermore only the cheapest or the most expensive datapoints can be shown in the map. The most expensive housing is visualized with a custom castle icon. The cheapest housings are visualized with a custom hovel icon. Each marker shows detailed information with a popup if its clicked.  
+Its possible to zoom and change settings in this interactive map. Two different base map layers can be chosen. Furthermore only the cheapest or the most expensive datapoints can be shown in the map. The most expensive housing is visualized with a custom castle icon. The cheapest housings are visualized with a custom hovel icon. Each marker shows detailed information with a popup if its clicked. Furthermore distances between two points can be measured with the measurement tool implemented in the map.  
 
 ```{r}
 map2<-leaflet(NYC) %>%
@@ -463,22 +455,15 @@ map2<-leaflet(NYC) %>%
   addMarkers(lng=df_exp$longitude, 
              lat=df_exp$latitude, 
               icon= castle, popup = paste0("Price per night: ", 
-                                           as.character(df_cheap$exp), 
-                                           " $",
-                                           "<br>","Room type: ",
-                                         df_exp$room_type, 
-                                         "<br>","Distance to Times Square: ",
+                                           as.character(df_cheap$exp), " $","<br>","Room type: ",
+                                         df_exp$room_type, "<br>","Distance to Times Square: ",
                                          as.character(round(df_exp$dist.timessquare/1000, digits=1))," km"),
              group=("Most expensive Airbnb Housing")) %>%
   addMarkers(lng=df_cheap$longitude,
              lat=df_cheap$latitude, 
              icon= hovel, popup = paste0("Price per night: ", 
-                                         as.character(df_cheap$price), 
-                                         " $",
-                                         "<br>","Room type: ",
-                                         df_cheap$room_type, 
-                                         "<br>",
-                                         "Distance to Times Square: ",
+                                         as.character(df_cheap$price)," $", "<br>","Room type: ",
+                                         df_cheap$room_type, "<br>","Distance to Times Square: ",
                                          as.character(round(df_cheap$dist.timessquare/1000,
                                                             digits=1))," km"),
              group=("Cheapest Airbnb Housing")) %>%
