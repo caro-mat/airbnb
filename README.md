@@ -14,3 +14,4 @@ Carole Mattmann, Jonas Zürcher
 * 01_data: raw data
 * 02_analysis: r scripts used for analysis purposes. Does not need to be considered, all relevant outcomes are in folder 03_rmarkdown.
 * 03_rmarkdown: R Markdown Script and HTML File 
+* 04_coursefunctions: list of functions learned in the course
